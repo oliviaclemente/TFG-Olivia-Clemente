@@ -1,0 +1,50 @@
+"""
+fig_3_5_modelo_ocupacion.py
+Genera la Figura 3.5: modelo de densidad-ocupacion (regresion log-log)
+con intervalo de prediccion al 95%, usando el modelo final geocodificado
+(b1=0.1766, a1=-0.0168, R2_LOO=0.100, significativo p=0.031).
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy import stats
+
+secciones = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+densidad = np.array([1.09, 5.26, 77.44, 107.98, 158.71, 32.13, 19.58, 77.55, 65.29, 43.03, 18.33, 2.06])
+ocupacion = np.array([1.5118, 1.7165, 2.3914, 2.5734, 2.4475, 1.5172, 0.8477, 2.4853, 2.8538, 2.3961, 0.8604, 0.9497])
+
+x = np.log(densidad)
+y = np.log(ocupacion)
+n = len(x)
+x_bar = x.mean()
+Sxx = np.sum((x - x_bar) ** 2)
+b1 = np.sum((x - x_bar) * (y - y.mean())) / Sxx
+a1 = y.mean() - b1 * x_bar
+residuos = y - (a1 + b1 * x)
+s_resid = np.sqrt(np.sum(residuos ** 2) / (n - 2))
+t_crit = stats.t.ppf(0.975, df=n - 2)
+
+x_line = np.linspace(x.min() - 0.3, x.max() + 0.3, 200)
+y_line = a1 + b1 * x_line
+se_pred = s_resid * np.sqrt(1 + 1 / n + (x_line - x_bar) ** 2 / Sxx)
+y_lo = y_line - t_crit * se_pred
+y_hi = y_line + t_crit * se_pred
+
+fig, ax = plt.subplots(figsize=(9, 6))
+ax.fill_between(np.exp(x_line), np.exp(y_lo), np.exp(y_hi),
+                 color="#1f77b4", alpha=0.2, label="Intervalo de prediccion 95%")
+ax.plot(np.exp(x_line), np.exp(y_line), color="#1f77b4", linewidth=2, label="Modelo ajustado")
+ax.scatter(densidad, ocupacion, color="red", zorder=5, label="Secciones censales observadas")
+
+for s, xi, yi in zip(secciones, densidad, ocupacion):
+    ax.annotate(str(s), (xi, yi), textcoords="offset points", xytext=(6, 4), fontsize=9)
+
+ax.set_xscale("log")
+ax.set_yscale("log")
+ax.set_title("Modelo de densidad-ocupacion (regresion log-log) con intervalo de prediccion (95%)")
+ax.set_xlabel("Densidad (hab/ha) [escala log]")
+ax.set_ylabel("Indice de ocupacion [escala log]")
+ax.legend()
+ax.grid(True, which="both", linestyle="--", alpha=0.3)
+
+plt.tight_layout()
+plt.savefig("fig_3_5_modelo_ocupacion.png", dpi=300)
